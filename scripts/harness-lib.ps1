@@ -197,10 +197,10 @@ function Parse-VictoryLog {
     $bottleneck = 'unknown'
     if ($steadySamples.Count -gt 0) {
         $parts = @(
-            @{ Name = 'GPU-bound';      Ms = [double]$gpuStats.Avg }
-            @{ Name = 'Copy/UMA-bound'; Ms = [double]$copyStats.Avg + [double]$backStats.Avg }
-            @{ Name = 'Texture-bound';  Ms = [double]$texStats.Avg }
-            @{ Name = 'CPU-prep-bound'; Ms = [math]::Max(0.0, [double]$cpuStats.Avg - [double]$copyStats.Avg - [double]$texStats.Avg) }
+            [pscustomobject]@{ Name = 'GPU-bound';      Ms = [double]$gpuStats.Avg }
+            [pscustomobject]@{ Name = 'Copy/UMA-bound'; Ms = [double]$copyStats.Avg + [double]$backStats.Avg }
+            [pscustomobject]@{ Name = 'Texture-bound';  Ms = [double]$texStats.Avg }
+            [pscustomobject]@{ Name = 'CPU-prep-bound'; Ms = [math]::Max(0.0, [double]$cpuStats.Avg - [double]$copyStats.Avg - [double]$texStats.Avg) }
         ) | Sort-Object -Property Ms -Descending
         $bottleneck = $parts[0].Name
     }
@@ -239,7 +239,7 @@ function Parse-VictoryLog {
 
 function Get-HarnessVerdict {
     param(
-        [hashtable]$Parsed,
+        [System.Collections.IDictionary]$Parsed,
         [string]$TerminationReason,
         [Nullable[int]]$ExitCode,
         [int]$TdrCount,
@@ -259,7 +259,7 @@ function Get-HarnessVerdict {
 
 function Format-HarnessMetric {
     param($Value, [string]$Suffix = '')
-    if ($null -eq $Value -or $Value -eq '') { return '-' }
+    if ($null -eq $Value -or ($Value -is [string] -and $Value -eq '')) { return '-' }
     return "$Value$Suffix"
 }
 
