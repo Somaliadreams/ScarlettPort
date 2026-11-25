@@ -719,7 +719,7 @@
               <button class="btn primary" onclick="copyAgentSnapshot()">Copy Agent JSON Snapshot</button>
             </div>
           </div>
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:12px;">
             <div>
               <div class="field" style="margin-bottom:8px;">
                 <label>Optimization Goal</label>
@@ -1042,7 +1042,7 @@ function renderBreakdownChart(profiles) {
   }
   const totals = rows.map(p => p.Breakdown.gpuMs + p.Breakdown.copyBackMs + p.Breakdown.textureMs + p.Breakdown.cpuOtherMs);
   const maxMs = Math.max(10, ...totals);
-  const rowH = 30, leftPad = 215, rightPad = 95, width = 920;
+  const rowH = 30, leftPad = 215, rightPad = 155, width = 960;
   const barW = width - leftPad - rightPad;
   const height = rows.length * rowH + 28;
 
