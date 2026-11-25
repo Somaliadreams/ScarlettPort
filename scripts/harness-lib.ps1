@@ -352,7 +352,7 @@ function Write-HarnessReports {
         $rebarCol = if ($null -eq $r.RebarSupported) { '?' } elseif ($r.RebarSupported) { 'yes' } else { 'no' }
         $artCol = "[log]($($r.Profile)/run.log)"
         if ($r.CapturedPngCount -gt 0) {
-            $artCol += " · $($r.CapturedPngCount) png"
+            $artCol += ", $($r.CapturedPngCount) png"
         }
 
         [void]$sb.AppendLine("| ``$($r.Profile)`` | $($r.Console) | **$($r.Verdict)** | $(Format-HarnessMetric $r.WorldBootSec) | $fpsCol | $msCol | $(Format-HarnessMetric $r.GpuMsAvg) | $copyBackTotal | $(Format-HarnessMetric $r.TextureMsAvg) | $memCol | $rebarCol | $($r.TdrCount) / $($r.BlackFrames) | $($r.Bottleneck) | $artCol |")
@@ -362,7 +362,7 @@ function Write-HarnessReports {
     [void]$sb.AppendLine("## Per-Profile Notes & Env Overrides")
     [void]$sb.AppendLine("")
     foreach ($r in $Results) {
-        [void]$sb.AppendLine("### ``$($r.Profile)`` — $($r.Verdict)")
+        [void]$sb.AppendLine("### ``$($r.Profile)`` - $($r.Verdict)")
         if ($r.Description) {
             [void]$sb.AppendLine("- $($r.Description)")
         }
