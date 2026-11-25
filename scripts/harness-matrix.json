@@ -1,0 +1,88 @@
+{
+  "description": "Unattended ScarlettPort test matrix tuned for RX 6800 XT 16GB + Ryzen 5 7600X + 32GB DDR5 + Windows 10.",
+  "defaults": {
+    "console": "series-s",
+    "env": {
+      "VICTORY_OWN_UPSCALER": "1",
+      "VICTORY_NO_WATCHDOG": "1",
+      "VICTORY_RELAY": "2",
+      "VICTORY_SYNC_PRECISE": "1",
+      "VICTORY_READ_SETTLE_PRECISE": "1",
+      "VICTORY_PRECOMPILED_GRAPHICS": "1",
+      "VICTORY_READFIX": "1",
+      "VICTORY_COPY_BACK_ONLY_READBACK": "1",
+      "VICTORY_NARROW_ROOT": "1",
+      "VICTORY_NARROW_VIEWS": "1",
+      "VICTORY_NARROW_BVH": "1",
+      "VICTORY_PREP_BARRIERS": "1",
+      "VICTORY_PREP_TABLES": "1",
+      "VICTORY_PREP_REUSE": "1",
+      "VICTORY_PIPELINE_WAIT_MS": "0"
+    }
+  },
+  "profiles": [
+    {
+      "name": "01-baseline-series-s",
+      "description": "Verified play-victory.ps1 defaults on Series S profile (safe reference baseline).",
+      "console": "series-s",
+      "env": {}
+    },
+    {
+      "name": "02-vram-4gb-series-s",
+      "description": "Leverage 16GB VRAM on RX 6800 XT by raising GPU-resident card buffer budget to 4 GiB (min 2 MiB).",
+      "console": "series-s",
+      "env": {
+        "VICTORY_CARD_BUFFERS_MB": "4096",
+        "VICTORY_CARD_BUFFERS_MIN_MB": "2"
+      }
+    },
+    {
+      "name": "03-rebar-probe-series-s",
+      "description": "Probe D3D12 GPU Upload Heaps (ReBAR / SAM) on Windows 10 + Adrenalin for CPU-written title windows.",
+      "console": "series-s",
+      "env": {
+        "VICTORY_CARD_BUFFERS_MB": "4096",
+        "VICTORY_CARD_BUFFERS_MIN_MB": "2",
+        "VICTORY_REBAR": "1",
+        "VICTORY_REBAR_MB": "3072"
+      }
+    },
+    {
+      "name": "04-indirect-barrier-series-s",
+      "description": "Batch indirect draw clamps and merge barriers on top of 4 GiB VRAM card buffers.",
+      "console": "series-s",
+      "env": {
+        "VICTORY_CARD_BUFFERS_MB": "4096",
+        "VICTORY_CARD_BUFFERS_MIN_MB": "2",
+        "VICTORY_INDIRECT_WINDOW": "1",
+        "VICTORY_INDIRECT_MERGE": "1",
+        "VICTORY_BARRIER_MERGE": "1"
+      }
+    },
+    {
+      "name": "05-mem-hash-fence-series-s",
+      "description": "Add known-writes skipping, fast lane hashing, and precise fence waits on top of profile 04.",
+      "console": "series-s",
+      "env": {
+        "VICTORY_CARD_BUFFERS_MB": "4096",
+        "VICTORY_CARD_BUFFERS_MIN_MB": "2",
+        "VICTORY_INDIRECT_WINDOW": "1",
+        "VICTORY_INDIRECT_MERGE": "1",
+        "VICTORY_BARRIER_MERGE": "1",
+        "VICTORY_KNOWN_WRITES": "1",
+        "VICTORY_FAST_HASH": "1",
+        "VICTORY_FENCE_PRECISE": "1"
+      }
+    },
+    {
+      "name": "06-series-x-baseline",
+      "description": "Series X profile comparison with 3 GiB card buffer cap (watch RAM commit on 32GB system).",
+      "console": "series-x",
+      "env": {
+        "VICTORY_OWN_UPSCALER": "0",
+        "VICTORY_CARD_BUFFERS_MB": "3072",
+        "VICTORY_CARD_BUFFERS_MIN_MB": "4"
+      }
+    }
+  ]
+}
