@@ -51,76 +51,126 @@ static const uint BUDGET = 1u << 27;
 // Groups of one dispatch; more run empty.
 static const uint GROUPS = 1u << 20;
 static const uint SPLIT = 2;
+groupshared uint s_cost[64];
+groupshared uint s_base;
+groupshared uint s_mesh_max[64];
+groupshared uint s_mesh_sum[64];
 [RootSignature(RS)]
 [numthreads(64, 1, 1)]
-void main(uint3 id : SV_DispatchThreadID) {
+void main(uint3 id : SV_DispatchThreadID, uint tid : SV_GroupIndex) {
     uint eff_count = records;
     bool ahead = (has_count & 2u) != 0;
     bool split = (has_count & 4u) != 0;
     if ((has_count & 1u) != 0) {
         eff_count = min(eff_count, count_buf.Load(count_offset));
     }
-    if (id.x >= eff_count) return;
+    bool active = id.x < eff_count;
     uint src_at = args_offset + id.x * stride;
     uint dst_at = id.x * stride;
-    uint cost;
+    uint cost = 0u;
     uint2 draw_counts = uint2(0, 0);
     uint3 groups = uint3(0, 0, 0);
-    if (kind <= 1) {
-        // Draws: vertex or index count, then instances.
-        uint2 asked = src_args.Load2(src_at);
-        if (ahead && (asked.x > (1u << 24) || asked.y > (1u << 24))) {
-            asked = uint2(0, 0);
+    uint mesh_gx = 0u;
+    uint mesh_add = 0u;
+    if (active) {
+        if (kind <= 1) {
+            // Draws: vertex or index count, then instances.
+            uint2 asked = src_args.Load2(src_at);
+            if (ahead && (asked.x > (1u << 24) || asked.y > (1u << 24))) {
+                asked = uint2(0, 0);
+            }
+            uint count = min(asked.x, 1u << 24);
+            uint instances = min(asked.y, (1u << 26) / max(count, 1u));
+            cost = count * instances;
+            draw_counts = uint2(count, instances);
+        } else if (kind == 2) {
+            uint3 asked = src_args.Load3(src_at);
+            uint3 g = min(asked, uint3(65535u, 65535u, 65535u));
+            // In parts: one dimension, and not the garbage of an argument
+            // nothing wrote.
+            if (split && g.y <= 1u && g.z <= 1u && asked.x <= SPLIT * 65535u) {
+                g.x = asked.x;
+            }
+            // x * y fits 32 bits; the whole count may not.
+            if (g.z != 0 && g.x * g.y > GROUPS / g.z) {
+                g = uint3(0, 0, 0);
+            }
+            cost = g.x * g.y * g.z * 64u;
+            groups = g;
+        } else {
+            // Mesh dispatches: the console's are one-dimensional.
+            uint3 g = src_args.Load3(src_at);
+            // Ahead of its draw, a record over the most a dispatch runs is a
+            // slot the title has not filled (the title leaves all
+            // ones there): empty, and not counted below either.
+            if (ahead && g.x > 65535u) {
+                g = uint3(0, 0, 0);
+            }
+            mesh_gx = g.x;
+            mesh_add = min(g.x, 1u << 24);
+            g = uint3(min(g.x, 65535u), min(g.y, 1u), min(g.z, 1u));
+            cost = g.x * g.y * g.z * 128u;
+            groups = g;
         }
-        uint count = min(asked.x, 1u << 24);
-        uint instances = min(asked.y, (1u << 26) / max(count, 1u));
-        cost = count * instances;
-        draw_counts = uint2(count, instances);
-    } else if (kind == 2) {
-        uint3 asked = src_args.Load3(src_at);
-        uint3 g = min(asked, uint3(65535u, 65535u, 65535u));
-        // In parts: one dimension, and not the garbage of an argument
-        // nothing wrote.
-        if (split && g.y <= 1u && g.z <= 1u && asked.x <= SPLIT * 65535u) {
-            g.x = asked.x;
-        }
-        // x * y fits 32 bits; the whole count may not.
-        if (g.z != 0 && g.x * g.y > GROUPS / g.z) {
-            g = uint3(0, 0, 0);
-        }
-        cost = g.x * g.y * g.z * 64u;
-        groups = g;
-    } else {
-        // Mesh dispatches: the console's are one-dimensional.
-        uint3 g = src_args.Load3(src_at);
-        // Ahead of its draw, a record over the most a dispatch runs is a
-        // slot the title has not filled (the title leaves all
-        // ones there): empty, and not counted below either.
-        if (ahead && g.x > 65535u) {
-            g = uint3(0, 0, 0);
-        }
-        // Diagnostics, in the budget buffer's next words: the largest
-        // group count a mesh record asked for, and the groups asked in all.
-        uint was;
-        budget.InterlockedMax(4, g.x, was);
-        budget.InterlockedAdd(8, min(g.x, 1u << 24), was);
-        g = uint3(min(g.x, 65535u), min(g.y, 1u), min(g.z, 1u));
-        cost = g.x * g.y * g.z * 128u;
-        groups = g;
     }
-    bool over = false;
-    if (cost > 0) {
-        uint before;
-        budget.InterlockedOr(0, 0, before);
-        [allow_uav_condition]
-        while (before < BUDGET) {
-            uint next = (BUDGET - before <= cost) ? BUDGET : (before + cost);
-            uint prev;
-            budget.InterlockedCompareExchange(0, before, next, prev);
-            if (prev == before) break;
-            before = prev;
+    // Diagnostics for mesh dispatches: reduce across the 64-lane group before
+    // touching global memory (64x fewer atomics on budget[4..8]).
+    if (kind > 2) {
+        s_mesh_max[tid] = mesh_gx;
+        s_mesh_sum[tid] = mesh_add;
+        GroupMemoryBarrierWithGroupSync();
+        [unroll]
+        for (uint s = 32u; s > 0u; s >>= 1u) {
+            if (tid < s) {
+                s_mesh_max[tid] = max(s_mesh_max[tid], s_mesh_max[tid + s]);
+                s_mesh_sum[tid] += s_mesh_sum[tid + s];
+            }
+            GroupMemoryBarrierWithGroupSync();
         }
-        over = before >= BUDGET || BUDGET - before < cost;
+        if (tid == 0u) {
+            uint was;
+            if (s_mesh_max[0] > 0u) budget.InterlockedMax(4, s_mesh_max[0], was);
+            if (s_mesh_sum[0] > 0u) budget.InterlockedAdd(8, s_mesh_sum[0], was);
+        }
+    }
+    // Saturating inclusive prefix-sum across the 64-lane group in groupshared
+    // memory: only lane 63 reserves the group total from budget[0], avoiding
+    // 64-way intra-wave CAS contention while preserving exact saturation.
+    uint clamped_cost = min(cost, BUDGET);
+    s_cost[tid] = clamped_cost;
+    GroupMemoryBarrierWithGroupSync();
+    [unroll]
+    for (uint offset = 1u; offset < 64u; offset <<= 1u) {
+        uint add = (tid >= offset) ? s_cost[tid - offset] : 0u;
+        GroupMemoryBarrierWithGroupSync();
+        uint cur = s_cost[tid];
+        s_cost[tid] = (BUDGET - cur <= add) ? BUDGET : (cur + add);
+        GroupMemoryBarrierWithGroupSync();
+    }
+    uint excl = (tid > 0u) ? s_cost[tid - 1u] : 0u;
+    if (tid == 63u) {
+        uint total = s_cost[63];
+        uint before = 0u;
+        if (total > 0u) {
+            budget.InterlockedOr(0, 0, before);
+            [allow_uav_condition]
+            while (before < BUDGET) {
+                uint next = (BUDGET - before <= total) ? BUDGET : (before + total);
+                uint prev;
+                budget.InterlockedCompareExchange(0, before, next, prev);
+                if (prev == before) break;
+                before = prev;
+            }
+        }
+        s_base = before;
+    }
+    GroupMemoryBarrierWithGroupSync();
+    if (!active) return;
+    bool over = false;
+    if (cost > 0u) {
+        uint base_c = min(s_base, BUDGET);
+        uint my_before = (BUDGET - base_c <= excl) ? BUDGET : (base_c + excl);
+        over = my_before >= BUDGET || BUDGET - my_before < cost;
     }
     if (kind <= 1) {
         if (over) {

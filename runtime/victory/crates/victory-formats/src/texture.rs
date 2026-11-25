@@ -772,6 +772,8 @@ impl Layout {
                         Some(8) => copy_runs::<8>(body, tiled_row, linear_row, &mut copy),
                         Some(16) => copy_runs::<16>(body, tiled_row, linear_row, &mut copy),
                         Some(32) => copy_runs::<32>(body, tiled_row, linear_row, &mut copy),
+                        Some(64) => copy_runs::<64>(body, tiled_row, linear_row, &mut copy),
+                        Some(128) => copy_runs::<128>(body, tiled_row, linear_row, &mut copy),
                         _ => copy_runs::<0>(body, tiled_row, linear_row, &mut copy),
                     }
                     copy_runs::<0>(last, tiled_row, linear_row, &mut copy);
@@ -783,6 +785,7 @@ impl Layout {
 }
 
 /// Copy micro-tile runs inline at a known width, or use each run's length for N = 0.
+#[inline(always)]
 fn copy_runs<const N: usize>(
     runs: &[(usize, usize, usize)],
     tiled_row: usize,
