@@ -49,11 +49,12 @@
     },
     {
       "name": "04-indirect-barrier-series-s",
-      "description": "Batch indirect draw clamps and merge barriers on top of 4 GiB VRAM card buffers.",
+      "description": "Batch indirect draw clamps, merge barriers, and coalesce card rehash runs on top of 4 GiB VRAM card buffers.",
       "console": "series-s",
       "env": {
         "VICTORY_CARD_BUFFERS_MB": "4096",
         "VICTORY_CARD_BUFFERS_MIN_MB": "2",
+        "VICTORY_CARD_REHASH_RUNS": "1",
         "VICTORY_INDIRECT_WINDOW": "1",
         "VICTORY_INDIRECT_MERGE": "1",
         "VICTORY_BARRIER_MERGE": "1"
@@ -66,6 +67,7 @@
       "env": {
         "VICTORY_CARD_BUFFERS_MB": "4096",
         "VICTORY_CARD_BUFFERS_MIN_MB": "2",
+        "VICTORY_CARD_REHASH_RUNS": "1",
         "VICTORY_INDIRECT_WINDOW": "1",
         "VICTORY_INDIRECT_MERGE": "1",
         "VICTORY_BARRIER_MERGE": "1",
