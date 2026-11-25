@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScarlettPort Harness UI</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --surface: #121822;
+    --surface-2: #18202d;
+    --surface-3: #1f2a3b;
+    --border: #263246;
+    --text: #e5edf7;
+    --muted: #8ea0b8;
+    --cyan: #38bdf8;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --violet: #a78bfa;
+    --pink: #f472b6;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    height: 100%;
+    overflow: hidden;
+  }
+  button, input, select, textarea {
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .app {
+    display: grid;
+    grid-template-rows: 54px 1fr;
+    height: 100vh;
+  }
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .brand-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 10px var(--cyan);
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-family: var(--mono);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .pill.ok { border-color: rgba(34,197,94,.45); color: #86efac; background: rgba(34,197,94,.12); }
+  .pill.warn { border-color: rgba(245,158,11,.45); color: #fcd34d; background: rgba(245,158,11,.12); }
+  .pill.err { border-color: rgba(239,68,68,.5); color: #fca5a5; background: rgba(239,68,68,.14); }
+  .pill.run { border-color: rgba(56,189,248,.6); color: #7dd3fc; background: rgba(56,189,248,.16); }
+  .pill.violet { border-color: rgba(167,139,250,.5); color: #ddd6fe; background: rgba(167,139,250,.14); }
+  .pulse {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--cyan);
+    animation: pulse 1.2s infinite ease-in-out;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.75); } }
+
+  .game-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    max-width: 520px;
+    margin-left: auto;
+  }
+  .input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 9px;
+    outline: none;
+    width: 100%;
+  }
+  .input:focus { border-color: var(--cyan); }
+  .input.mono { font-family: var(--mono); font-size: 11.5px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 11px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background .12s, border-color .12s;
+  }
+  .btn:hover:not(:disabled) { background: var(--surface-3); border-color: #3a4c69; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.primary { background: #0284c7; border-color: #0ea5e9; color: #fff; }
+  .btn.primary:hover:not(:disabled) { background: #0369a1; }
+  .btn.danger { background: rgba(239,68,68,.18); border-color: rgba(239,68,68,.55); color: #fecaca; }
+  .btn.danger:hover:not(:disabled) { background: rgba(239,68,68,.3); }
+  .btn.success { background: rgba(34,197,94,.16); border-color: rgba(34,197,94,.5); color: #bbf7d0; }
+  .btn.sm { padding: 4px 8px; font-size: 11px; }
+
+  .workspace {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: 0;
+  }
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px;
+    gap: 14px;
+  }
+  .panel {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .panel-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .session-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .session-item {
+    padding: 8px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    transition: border-color .12s, background .12s;
+  }
+  .session-item:hover { border-color: #3d506e; }
+  .session-item.active { border-color: var(--cyan); background: rgba(56,189,248,.09); }
+  .session-item .sid { font-family: var(--mono); font-size: 12px; font-weight: 700; }
+  .session-item .meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; margin-top: 3px; }
+
+  .profile-checks {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 185px;
+    overflow-y: auto;
+    margin-bottom: 8px;
+  }
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 6px;
+    border-radius: 5px;
+    background: var(--bg);
+    border: 1px solid rgba(38,50,70,.6);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .check-row input { margin: 0; accent-color: var(--cyan); }
+  .flag-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+  .num-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .field label {
+    display: block;
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+
+  .main {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+  }
+  .tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 16px 0 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    padding: 8px 14px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 7px 7px 0 0;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 12.5px;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    background: var(--bg);
+    color: var(--cyan);
+    border-color: var(--border);
+  }
+  .tab-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .hidden { display: none !important; }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+  }
+  @media (max-width: 1280px) { .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 13px;
+  }
+  .kpi .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .kpi .val { font-size: 20px; font-weight: 700; font-family: var(--mono); margin-top: 4px; }
+  .kpi .sub { font-size: 11px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .card-title { font-size: 13px; font-weight: 700; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  th, td {
+    padding: 7px 8px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    white-space: nowrap;
+  }
+  th {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    background: var(--surface-2);
+    position: sticky;
+    top: 0;
+  }
+  th.num, td.num { text-align: right; font-family: var(--mono); }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover td { background: rgba(56,189,248,.07); }
+  tr.selected td { background: rgba(56,189,248,.13); }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+  .b-pass { background: rgba(34,197,94,.16); color: #86efac; border: 1px solid rgba(34,197,94,.4); }
+  .b-fail { background: rgba(239,68,68,.18); color: #fca5a5; border: 1px solid rgba(239,68,68,.45); }
+  .b-run  { background: rgba(56,189,248,.18); color: #7dd3fc; border: 1px solid rgba(56,189,248,.45); }
+  .b-warn { background: rgba(245,158,11,.18); color: #fcd34d; border: 1px solid rgba(245,158,11,.45); }
+  .b-muted { background: var(--surface-3); color: var(--muted); border: 1px solid var(--border); }
+
+  .legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .legend-item { display: inline-flex; align-items: center; gap: 5px; }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 1100px) { .chart-grid { grid-template-columns: 1fr; } }
+
+  .console-box {
+    background: #070a0f;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    line-height: 1.45;
+    max-height: 290px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .log-line { display: flex; gap: 10px; }
+  .log-ln { color: #516179; user-select: none; min-width: 44px; text-align: right; }
+  .log-err { color: #fca5a5; }
+  .log-warn { color: #fcd34d; }
+  .log-host { color: #7dd3fc; }
+  .log-card { color: #c4b5fd; }
+
+  .diff-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+  }
+  @media (max-width: 1200px) { .diff-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .diff-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .diff-box .k { font-size: 10.5px; color: var(--muted); }
+  .diff-box .v { font-family: var(--mono); font-size: 14px; font-weight: 700; margin-top: 2px; }
+  .pos { color: #4ade80; }
+  .neg { color: #f87171; }
+  .neu { color: var(--muted); }
+
+  .frames-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .frame-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .frame-card img { width: 100%; height: 135px; object-fit: cover; display: block; background: #000; }
+  .frame-card .cap { padding: 6px 8px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  .compare-frames {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .compare-frames img { width: 100%; border-radius: 6px; border: 1px solid var(--border); background: #000; }
+
+  .toast {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    background: var(--surface-3);
+    border: 1px solid var(--cyan);
+    padding: 9px 14px;
+    border-radius: 7px;
+    font-size: 12px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.45);
+    z-index: 99;
+    display: none;
+  }
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,.82);
+    display: none; align-items: center; justify-content: center; z-index: 100; padding: 24px;
+  }
+  .modal img { max-width: 95vw; max-height: 90vh; border: 1px solid var(--border); border-radius: 6px; }
+  details summary { cursor: pointer; color: var(--cyan); font-weight: 600; font-size: 11.5px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip {
+    font-family: var(--mono); font-size: 10.5px; padding: 2px 7px;
+    border-radius: 4px; background: var(--bg); border: 1px solid var(--border); color: #cbd5e1;
+  }
+  .empty {
+    padding: 28px; text-align: center; color: var(--muted);
+    border: 1px dashed var(--border); border-radius: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <span>ScarlettPort Harness</span>
+    </div>
+    <span id="gitPill" class="pill">git: ...</span>
+    <span id="runnerPill" class="pill">IDLE</span>
+    <span id="loopPill" class="pill violet">LOOP: MANUAL</span>
+
+    <div class="game-box">
+      <input id="gamePathInput" class="input mono" placeholder="Game dump path (folder with game_scarlett_master.exe)" />
+      <button class="btn sm" onclick="saveGamePath()">Save</button>
+      <span id="gameValidPill" class="pill warn">No path</span>
+    </div>
+
+    <button id="btnRun" class="btn primary" onclick="startSelectedRun()">Run Selected</button>
+    <button id="btnStop" class="btn danger" onclick="stopRun()" disabled>Stop</button>
+    <button class="btn" onclick="generateDemo()" title="Generate a realistic synthetic session for UI exploration">Demo Data</button>
+    <button class="btn" onclick="refreshAll()">Refresh</button>
+  </header>
+
+  <div class="workspace">
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <div class="panel">
+        <div class="panel-title">
+          <span>Sessions</span>
+          <span id="sessionCount" class="badge b-muted">0</span>
+        </div>
+        <div id="sessionList" class="session-list"></div>
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <button class="btn sm" style="flex:1" onclick="resumeSelectedSession()">Resume</button>
+          <button class="btn sm" style="flex:1" onclick="reanalyzeSelectedSession()">Re-analyze</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <span>Matrix Profiles</span>
+          <div>
+            <button class="btn sm" onclick="toggleAllProfiles(true)">All</button>
+            <button class="btn sm" onclick="toggleAllProfiles(false)">None</button>
+          </div>
+        </div>
+        <div id="profileChecks" class="profile-checks"></div>
+
+        <div class="flag-grid">
+          <label class="check-row"><input type="checkbox" id="chkWalkTest">WalkTest</label>
+          <label class="check-row"><input type="checkbox" id="chkRebuild">Rebuild</label>
+          <label class="check-row"><input type="checkbox" id="chkSkipSetup">SkipSetup</label>
+          <label class="check-row"><input type="checkbox" id="chkSkipWarm">SkipWarm</label>
+          <label class="check-row"><input type="checkbox" id="chkSkipPrecompile">SkipPre</label>
+          <label class="check-row"><input type="checkbox" id="chkNoCapture">NoCapture</label>
+        </div>
+
+        <div class="num-grid">
+          <div class="field"><label>World Sec</label><input id="numWorldSec" type="number" class="input mono" value="60"></div>
+          <div class="field"><label>Grace Sec</label><input id="numGraceSec" type="number" class="input mono" value="30"></div>
+          <div class="field"><label>Boot Timeout</label><input id="numBootSec" type="number" class="input mono" value="420"></div>
+          <div class="field"><label>Stall Timeout</label><input id="numStallSec" type="number" class="input mono" value="120"></div>
+        </div>
+
+        <details>
+          <summary>Custom Ad-hoc Experiment</summary>
+          <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+            <input id="customName" class="input mono" placeholder="Profile name (e.g. exp-rehash-v2)" value="exp-custom-01">
+            <select id="customConsole" class="input">
+              <option value="series-s">series-s</option>
+              <option value="series-x">series-x</option>
+            </select>
+            <textarea id="customEnv" class="input mono" rows="4" placeholder="KEY=VALUE per line&#10;VICTORY_CARD_BUFFERS_MB=4096&#10;VICTORY_CARD_REHASH_RUNS=1"></textarea>
+            <button class="btn primary sm" onclick="startCustomRun()">Run Custom Experiment</button>
+          </div>
+        </details>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+      <nav class="tabs">
+        <button class="tab active" data-tab="overview" onclick="switchTab('overview')">Overview &amp; Matrix</button>
+        <button class="tab" data-tab="inspector" onclick="switchTab('inspector')">Profile Inspector</button>
+        <button class="tab" data-tab="frames" onclick="switchTab('frames')">Frames &amp; Visual Compare</button>
+        <button class="tab" data-tab="loop" onclick="switchTab('loop')">Agent Loop Control</button>
+        <div style="margin-left:auto; padding-bottom:6px; display:flex; align-items:center; gap:8px;">
+          <span id="activeSessionBanner" class="pill">No session selected</span>
+        </div>
+      </nav>
+
+      <!-- TAB 1: OVERVIEW -->
+      <section id="tab-overview" class="tab-body">
+        <div id="liveConsoleCard" class="card hidden">
+          <div class="card-header">
+            <div class="card-title">Live Harness Runner Output</div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <span id="livePhaseBadge" class="badge b-run">starting</span>
+              <button class="btn sm" onclick="toggleLiveConsole()">Hide</button>
+            </div>
+          </div>
+          <div id="liveConsole" class="console-box"></div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi"><div class="label">Best World FPS</div><div id="kpiFps" class="val">-</div><div id="kpiFpsSub" class="sub">No passing profile</div></div>
+          <div class="kpi"><div class="label">Primary Bottleneck</div><div id="kpiBottle" class="val">-</div><div id="kpiBottleSub" class="sub">Steady-state avg</div></div>
+          <div class="kpi"><div class="label">Peak RAM / Commit</div><div id="kpiRam" class="val">-</div><div id="kpiRamSub" class="sub">Across profiles</div></div>
+          <div class="kpi"><div class="label">Stability</div><div id="kpiStab" class="val">-</div><div id="kpiStabSub" class="sub">TDR / Crash / Black</div></div>
+          <div class="kpi"><div class="label">ReBAR / Host GPU</div><div id="kpiRebar" class="val">-</div><div id="kpiRebarSub" class="sub">-</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Frame-Time Bottleneck Breakdown (ms/frame)</div>
+            <div class="legend">
+              <span class="legend-item"><span class="swatch" style="background:#38bdf8"></span>GPU ms</span>
+              <span class="legend-item"><span class="swatch" style="background:#f59e0b"></span>Copy + CopyBack ms</span>
+              <span class="legend-item"><span class="swatch" style="background:#a78bfa"></span>Texture ms</span>
+              <span class="legend-item"><span class="swatch" style="background:#22c55e"></span>CPU Prep (other) ms</span>
+            </div>
+          </div>
+          <div id="breakdownChart"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Results Matrix (click a row to inspect time-series &amp; logs)</div>
+            <span id="hostSummary" class="pill">-</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Profile</th>
+                  <th>Console</th>
+                  <th>Verdict</th>
+                  <th class="num">Boot (s)</th>
+                  <th class="num">FPS avg (min-max)</th>
+                  <th class="num">Frame ms (P95)</th>
+                  <th class="num">GPU ms</th>
+                  <th class="num">Copy+Back</th>
+                  <th class="num">Tex ms</th>
+                  <th class="num">Card MB</th>
+                  <th class="num">RAM / Commit</th>
+                  <th>ReBAR</th>
+                  <th>TDR / Blk</th>
+                  <th>Bottleneck</th>
+                </tr>
+              </thead>
+              <tbody id="matrixBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Quick A/B Profile Delta</div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <span style="color:var(--muted)">Baseline:</span>
+              <select id="diffBase" class="input" style="width:auto" onchange="renderDiff()"></select>
+              <span style="color:var(--muted)">vs Target:</span>
+              <select id="diffTarget" class="input" style="width:auto" onchange="renderDiff()"></select>
+            </div>
+          </div>
+          <div id="diffOutput"></div>
+        </div>
+      </section>
+
+      <!-- TAB 2: PROFILE INSPECTOR -->
+      <section id="tab-inspector" class="tab-body hidden">
+        <div class="card">
+          <div class="card-header">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <select id="inspectProfileSelect" class="input mono" style="width:auto" onchange="loadProfileInspector(this.value)"></select>
+              <span id="inspVerdict" class="badge b-muted">-</span>
+              <span id="inspBottleneck" class="pill">-</span>
+              <span id="inspRebar" class="pill">-</span>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+              <span style="color:var(--muted); font-size:11px;">Live Input:</span>
+              <button class="btn sm" onclick="sendPress('A')">A</button>
+              <button class="btn sm" onclick="sendPress('B')">B</button>
+              <button class="btn sm" onclick="sendPress('LS_UP LS_UP')">Walk</button>
+              <button class="btn sm" onclick="sendPress('RS_RIGHT')">Cam</button>
+              <input id="customPressInput" class="input mono" style="width:130px" placeholder="Custom tokens">
+              <button class="btn sm" onclick="sendPress(document.getElementById('customPressInput').value)">Send</button>
+            </div>
+          </div>
+          <div id="inspEnvChips" class="chips"></div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">FPS &amp; Frame Time (ms) Over Samples</div>
+              <div class="legend">
+                <span class="legend-item"><span class="swatch" style="background:#22c55e"></span>FPS</span>
+                <span class="legend-item"><span class="swatch" style="background:#38bdf8"></span>Frame ms</span>
+              </div>
+            </div>
+            <div id="fpsChart"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Per-Sample Cost Breakdown (ms)</div>
+              <div class="legend">
+                <span class="legend-item"><span class="swatch" style="background:#38bdf8"></span>GPU</span>
+                <span class="legend-item"><span class="swatch" style="background:#f59e0b"></span>Copy</span>
+                <span class="legend-item"><span class="swatch" style="background:#a78bfa"></span>Tex</span>
+                <span class="legend-item"><span class="swatch" style="background:#f472b6"></span>CopyBack</span>
+              </div>
+            </div>
+            <div id="costChart"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Run Log Explorer</div>
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+              <select id="logFilter" class="input" style="width:auto" onchange="loadProfileLog()">
+                <option value="all">All lines</option>
+                <option value="errors">Errors &amp; Warns</option>
+                <option value="host">Host FPS / Frame ms</option>
+                <option value="card">Card Memory</option>
+                <option value="rebar">ReBAR &amp; Fast Boot</option>
+                <option value="black">Black Frames</option>
+              </select>
+              <input id="logSearch" class="input mono" style="width:200px" placeholder="Search log..." oninput="debouncedLogSearch()">
+              <span id="logMeta" class="pill">0 lines</span>
+            </div>
+          </div>
+          <div id="logBox" class="console-box" style="max-height:380px;"></div>
+        </div>
+      </section>
+
+      <!-- TAB 3: FRAMES -->
+      <section id="tab-frames" class="tab-body hidden">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Captured World Frames</div>
+            <select id="framesProfileSelect" class="input mono" style="width:auto" onchange="renderFramesGallery()"></select>
+          </div>
+          <div id="framesGallery"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Side-by-Side Visual Compare</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+              <select id="cmpLeftProf" class="input mono" style="width:auto" onchange="populateCompareFrames('Left')"></select>
+              <select id="cmpLeftFrame" class="input mono" style="width:auto" onchange="renderVisualCompare()"></select>
+              <span style="color:var(--muted)">vs</span>
+              <select id="cmpRightProf" class="input mono" style="width:auto" onchange="populateCompareFrames('Right')"></select>
+              <select id="cmpRightFrame" class="input mono" style="width:auto" onchange="renderVisualCompare()"></select>
+            </div>
+          </div>
+          <div id="visualCompareBox" class="compare-frames"></div>
+        </div>
+      </section>
+
+      <!-- TAB 4: AGENT LOOP CONTROL -->
+      <section id="tab-loop" class="tab-body hidden">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Autonomous Agent Loop Control Plane</div>
+            <div style="display:flex; gap:8px;">
+              <button id="btnPauseLoop" class="btn warn" onclick="toggleLoopPause()">Pause Agent</button>
+              <button class="btn primary" onclick="copyAgentSnapshot()">Copy Agent JSON Snapshot</button>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <div>
+              <div class="field" style="margin-bottom:8px;">
+                <label>Optimization Goal</label>
+                <input id="loopGoal" class="input" />
+              </div>
+              <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+                <div class="field">
+                  <label>Mode</label>
+                  <select id="loopMode" class="input">
+                    <option value="manual">manual</option>
+                    <option value="agent">agent</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Baseline Session</label>
+                  <input id="loopBaseSession" class="input mono" placeholder="session-id" />
+                </div>
+                <div class="field">
+                  <label>Baseline Profile</label>
+                  <input id="loopBaseProfile" class="input mono" placeholder="01-baseline-series-s" />
+                </div>
+              </div>
+              <div class="field" style="margin-bottom:8px;">
+                <label>Current Hypothesis / Step</label>
+                <input id="loopHypothesis" class="input" placeholder="What the next iteration tests..." />
+              </div>
+              <button class="btn primary sm" onclick="saveLoopSettings()">Save Loop Settings</button>
+            </div>
+            <div class="panel" style="margin:0;">
+              <div class="panel-title"><span>Agent REST API Endpoints</span></div>
+              <div class="console-box" style="max-height:170px; font-size:11px;">GET  /api/agent/snapshot       Compact git + metrics + bottlenecks + loop
+GET  /api/loop/state           Loop goal, paused flag, experiment ledger
+POST /api/loop/control         Set mode/paused/goal/currentStep/hypothesis
+POST /api/runs/start           Launch matrix or customProfile experiment
+POST /api/runs/stop            Kill active run cleanly
+POST /api/loop/iterations      Append iteration (commit, hypothesis, delta)
+POST /api/loop/iterations/decision  Mark KEEP / REVERT / FAILED
+GET  /api/sessions/&lt;id&gt;/profiles/&lt;p&gt; Full per-sample time series &amp; errors</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Experiment Iterations Ledger</div>
+            <button class="btn sm" onclick="logManualIteration()">+ Log Current Best as Iteration</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Time (UTC)</th>
+                  <th>Commit</th>
+                  <th>Session / Profile</th>
+                  <th>Hypothesis</th>
+                  <th>Verdict</th>
+                  <th class="num">FPS</th>
+                  <th class="num">GPU ms</th>
+                  <th>Decision</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="expBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<div id="imgModal" class="modal" onclick="this.style.display='none'"><img id="modalImg" src="" alt="frame"></div>
+
+<script>
+const STATE = {
+  apiState: null,
+  sessions: [],
+  selectedSessionId: null,
+  sessionDetail: null,
+  selectedProfileName: null,
+  profileDetail: null,
+  loop: null,
+  experiments: [],
+  liveConsoleHidden: false,
+  sse: null,
+  logSearchTimer: null,
+};
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function fmt(v, suffix = '') {
+  return (v === null || v === undefined || v === '') ? '-' : `${v}${suffix}`;
+}
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = 'none'; }, 3200);
+}
+function verdictBadge(v) {
+  const s = String(v || 'UNKNOWN');
+  let cls = 'b-muted';
+  if (s === 'PASS') cls = 'b-pass';
+  else if (s === 'RUNNING' || s === 'PENDING') cls = 'b-run';
+  else if (s === 'BOOT_TIMEOUT' || s === 'NO_WORLD') cls = 'b-warn';
+  else cls = 'b-fail';
+  return `<span class="badge ${cls}">${esc(s)}</span>`;
+}
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-body').forEach(s => s.classList.toggle('hidden', s.id !== `tab-${name}`));
+  if (name === 'inspector' && STATE.selectedProfileName) loadProfileInspector(STATE.selectedProfileName);
+  if (name === 'frames') renderFramesTab();
+  if (name === 'loop') loadLoopState();
+}
+
+async function refreshAll() {
+  try {
+    const st = await api('/api/state');
+    STATE.apiState = st;
+    STATE.sessions = st.sessions || [];
+    STATE.loop = st.loop;
+    renderTopBar(st);
+    renderSidebar(st);
+    if (!STATE.selectedSessionId && STATE.sessions.length > 0) {
+      STATE.selectedSessionId = STATE.sessions[0].id;
+    } else if (STATE.selectedSessionId && !STATE.sessions.some(s => s.id === STATE.selectedSessionId)) {
+      STATE.selectedSessionId = STATE.sessions.length ? STATE.sessions[0].id : null;
+    }
+    if (STATE.selectedSessionId) {
+      await selectSession(STATE.selectedSessionId, true);
+    } else {
+      renderEmptyOverview();
+    }
+    await loadLoopState();
+  } catch (e) {
+    toast('Error loading state: ' + e.message);
+  }
+}
+
+function renderTopBar(st) {
+  const g = st.git || {};
+  const gitEl = document.getElementById('gitPill');
+  gitEl.textContent = `${g.branch || '?'}@${g.sha || '?'}${g.dirty ? '*' : ''}`;
+  gitEl.title = g.subject || '';
+  gitEl.className = 'pill ' + (g.dirty ? 'warn' : '');
+
+  const r = st.runner || {};
+  const rp = document.getElementById('runnerPill');
+  if (r.running) {
+    rp.className = 'pill run';
+    rp.innerHTML = `<span class="pulse"></span>${esc(r.phase || 'running')}${r.activeProfile ? ': ' + esc(r.activeProfile) : ''}`;
+  } else {
+    rp.className = 'pill';
+    rp.textContent = r.exitCode === 0 ? 'IDLE (exit 0)' : (r.exitCode != null ? `IDLE (exit ${r.exitCode})` : 'IDLE');
+  }
+  document.getElementById('btnRun').disabled = !!r.running;
+  document.getElementById('btnStop').disabled = !r.running;
+
+  const lp = document.getElementById('loopPill');
+  const loop = st.loop || {};
+  if (loop.paused) {
+    lp.className = 'pill warn';
+    lp.textContent = 'LOOP: PAUSED';
+  } else if (loop.mode === 'agent') {
+    lp.className = 'pill run';
+    lp.innerHTML = `<span class="pulse"></span>LOOP: AGENT`;
+  } else {
+    lp.className = 'pill violet';
+    lp.textContent = 'LOOP: MANUAL';
+  }
+
+  const cfg = st.config || {};
+  const inp = document.getElementById('gamePathInput');
+  if (document.activeElement !== inp) inp.value = cfg.gamePath || '';
+  const gv = st.gameValidation || {};
+  const gvp = document.getElementById('gameValidPill');
+  gvp.className = 'pill ' + (gv.valid ? 'ok' : 'warn');
+  gvp.textContent = gv.valid ? 'Dump OK' : (cfg.gamePath ? 'Invalid path' : 'No path');
+  gvp.title = gv.message || '';
+
+  if (r.running && !STATE.liveConsoleHidden) {
+    document.getElementById('liveConsoleCard').classList.remove('hidden');
+    document.getElementById('livePhaseBadge').textContent = r.phase || 'running';
+    renderLiveConsoleLines(r.recentOutput || []);
+  }
+}
+
+function renderSidebar(st) {
+  document.getElementById('sessionCount').textContent = STATE.sessions.length;
+  const sl = document.getElementById('sessionList');
+  if (!STATE.sessions.length) {
+    sl.innerHTML = '<div class="empty" style="padding:14px; font-size:11px;">No sessions yet.<br>Click <b>Demo Data</b> or run a matrix.</div>';
+  } else {
+    sl.innerHTML = STATE.sessions.map(s => {
+      const pass = (s.verdicts && s.verdicts.PASS) || 0;
+      const fail = s.profileCount - pass;
+      return `<div class="session-item ${s.id === STATE.selectedSessionId ? 'active' : ''}" onclick="selectSession('${esc(s.id)}')">
+        <div class="sid">${esc(s.id)}</div>
+        <div class="meta">
+          <span>${pass} pass${fail ? ` · <b style="color:#fca5a5">${fail} fail</b>` : ''}</span>
+          <span>${s.bestFps != null ? `<b style="color:#86efac">${s.bestFps} fps</b>` : '-'}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  const pc = document.getElementById('profileChecks');
+  if (!pc.dataset.initialized && st.matrix && st.matrix.profiles) {
+    pc.dataset.initialized = '1';
+    pc.innerHTML = st.matrix.profiles.map(p => `
+      <label class="check-row" title="${esc(p.description || '')}">
+        <input type="checkbox" class="prof-chk" value="${esc(p.name)}" checked>
+        <span style="overflow:hidden; text-overflow:ellipsis;">${esc(p.name)}</span>
+      </label>
+    `).join('');
+  }
+}
+
+function toggleAllProfiles(val) {
+  document.querySelectorAll('.prof-chk').forEach(c => c.checked = val);
+}
+
+async function selectSession(sid, silent = false) {
+  STATE.selectedSessionId = sid;
+  document.querySelectorAll('.session-item').forEach(el => {
+    el.classList.toggle('active', el.querySelector('.sid')?.textContent === sid);
+  });
+  try {
+    const detail = await api(`/api/sessions/${encodeURIComponent(sid)}`);
+    STATE.sessionDetail = detail;
+    document.getElementById('activeSessionBanner').textContent = `Session: ${sid}`;
+    renderOverview(detail);
+    populateProfileSelectors(detail);
+    if (!silent && STATE.selectedProfileName) {
+      loadProfileInspector(STATE.selectedProfileName);
+    }
+  } catch (e) {
+    toast('Failed to load session: ' + e.message);
+  }
+}
+
+function renderEmptyOverview() {
+  document.getElementById('activeSessionBanner').textContent = 'No session selected';
+  ['kpiFps','kpiBottle','kpiRam','kpiStab','kpiRebar'].forEach(id => document.getElementById(id).textContent = '-');
+  document.getElementById('breakdownChart').innerHTML = '<div class="empty">No harness sessions in <code>logs/harness/</code> yet. Click <b>Demo Data</b> in the top bar to preview charts, or enter your game dump path and click <b>Run Selected</b>.</div>';
+  document.getElementById('matrixBody').innerHTML = '';
+  document.getElementById('diffOutput').innerHTML = '';
+}
+
+function renderOverview(detail) {
+  const profiles = detail.profiles || [];
+  const host = detail.host || {};
+  document.getElementById('hostSummary').textContent = host.GpuName
+    ? `${host.GpuName} · ${host.CpuName || ''} · ${host.RamGb || '?'}G RAM + ${host.PagefileGb || '?'}G PF`
+    : 'Host metadata unavailable';
+
+  const passing = profiles.filter(p => p.Verdict === 'PASS' && p.WorldFpsAvg != null)
+    .sort((a, b) => Number(b.WorldFpsAvg) - Number(a.WorldFpsAvg));
+  const best = passing[0] || profiles[0];
+
+  if (passing.length) {
+    document.getElementById('kpiFps').innerHTML = `<span style="color:#4ade80">${best.WorldFpsAvg} fps</span>`;
+    document.getElementById('kpiFpsSub').textContent = `${best.Profile} (${best.WorldMsAvg} ms avg)`;
+  } else {
+    document.getElementById('kpiFps').textContent = '0 PASS';
+    document.getElementById('kpiFpsSub').textContent = `${profiles.length} profiles recorded`;
+  }
+
+  document.getElementById('kpiBottle').textContent = best ? (best.Bottleneck || 'unknown') : '-';
+  document.getElementById('kpiBottleSub').textContent = best && best.GpuMsAvg != null
+    ? `GPU ${best.GpuMsAvg}ms · Copy ${fmt(best.CopyMsAvg,'ms')} · Tex ${fmt(best.TextureMsAvg,'ms')}`
+    : 'No steady samples';
+
+  const maxRam = Math.max(0, ...profiles.map(p => Number(p.PeakWorkingSetGb || 0)));
+  const maxCommit = Math.max(0, ...profiles.map(p => Number(p.PeakCommitGb || 0)));
+  document.getElementById('kpiRam').textContent = maxRam ? `${maxRam.toFixed(1)} / ${maxCommit.toFixed(1)} GB` : '-';
+  document.getElementById('kpiRamSub').textContent = 'Peak working set / commit';
+
+  const tdrs = profiles.reduce((a, p) => a + Number(p.TdrCount || 0), 0);
+  const blks = profiles.reduce((a, p) => a + Number(p.BlackFrames || 0), 0);
+  const fails = profiles.filter(p => p.Verdict !== 'PASS' && p.Verdict !== 'RUNNING').length;
+  document.getElementById('kpiStab').innerHTML = (tdrs === 0 && fails === 0)
+    ? `<span style="color:#4ade80">Clean</span>`
+    : `<span style="color:#f87171">${tdrs} TDR / ${fails} fail</span>`;
+  document.getElementById('kpiStabSub').textContent = `${blks} black frames total`;
+
+  const rebarAny = profiles.some(p => p.RebarSupported === true);
+  const rebarKnown = profiles.some(p => p.RebarSupported !== null && p.RebarSupported !== undefined);
+  document.getElementById('kpiRebar').textContent = rebarKnown ? (rebarAny ? 'Active' : 'Unavailable') : 'Unknown';
+  document.getElementById('kpiRebarSub').textContent = host.GpuName || '-';
+
+  renderBreakdownChart(profiles);
+  renderMatrixTable(profiles);
+  populateDiffSelectors(profiles);
+  renderDiff();
+}
+
+function renderBreakdownChart(profiles) {
+  const el = document.getElementById('breakdownChart');
+  const rows = profiles.filter(p => p.Breakdown);
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty">No steady-state frame breakdown data available in this session yet.</div>';
+    return;
+  }
+  const totals = rows.map(p => p.Breakdown.gpuMs + p.Breakdown.copyBackMs + p.Breakdown.textureMs + p.Breakdown.cpuOtherMs);
+  const maxMs = Math.max(10, ...totals);
+  const rowH = 30, leftPad = 215, rightPad = 95, width = 920;
+  const barW = width - leftPad - rightPad;
+  const height = rows.length * rowH + 28;
+
+  let svg = `<svg viewBox="0 0 ${width} ${height}" style="width:100%; height:auto; display:block;">`;
+  // Grid lines
+  for (let i = 0; i <= 4; i++) {
+    const x = leftPad + (barW * i / 4);
+    const val = Math.round(maxMs * i / 4);
+    svg += `<line x1="${x}" y1="0" x2="${x}" y2="${height - 20}" stroke="#223044" stroke-dasharray="3,3" />`;
+    svg += `<text x="${x}" y="${height - 5}" fill="#7f93ad" font-size="10" font-family="monospace" text-anchor="middle">${val} ms</text>`;
+  }
+  rows.forEach((p, idx) => {
+    const y = idx * rowH + 5;
+    const b = p.Breakdown;
+    const segs = [
+      { v: b.gpuMs, c: '#38bdf8', n: 'GPU' },
+      { v: b.copyBackMs, c: '#f59e0b', n: 'Copy+Back' },
+      { v: b.textureMs, c: '#a78bfa', n: 'Texture' },
+      { v: b.cpuOtherMs, c: '#22c55e', n: 'CPU other' },
+    ];
+    svg += `<text x="${leftPad - 10}" y="${y + 14}" fill="#dbe7f5" font-size="11" font-family="monospace" text-anchor="end">${esc(p.Profile)}</text>`;
+    let x = leftPad;
+    segs.forEach(s => {
+      const w = (s.v / maxMs) * barW;
+      if (w > 0.5) {
+        svg += `<rect x="${x}" y="${y}" width="${w}" height="18" fill="${s.c}" rx="2"><title>${esc(p.Profile)} · ${s.n}: ${s.v} ms</title></rect>`;
+        x += w;
+      }
+    });
+    const tot = (b.gpuMs + b.copyBackMs + b.textureMs + b.cpuOtherMs).toFixed(1);
+    svg += `<text x="${x + 8}" y="${y + 14}" fill="#9fb2ca" font-size="11" font-family="monospace">${tot} ms (${fmt(p.WorldFpsAvg,' fps')})</text>`;
+  });
+  svg += `</svg>`;
+  el.innerHTML = svg;
+}
+
+function renderMatrixTable(profiles) {
+  const tbody = document.getElementById('matrixBody');
+  tbody.innerHTML = profiles.map(p => {
+    const fps = p.WorldFpsAvg != null ? `${p.WorldFpsAvg} (${p.WorldFpsMin}-${p.WorldFpsMax})` : '-';
+    const ms = p.WorldMsAvg != null ? `${p.WorldMsAvg} (${p.WorldMsP95})` : '-';
+    const cb = (p.CopyMsAvg != null && p.CopyBackMsAvg != null) ? (Number(p.CopyMsAvg) + Number(p.CopyBackMsAvg)).toFixed(1) : '-';
+    const mem = `${fmt(p.PeakWorkingSetGb,'G')} / ${fmt(p.PeakCommitGb,'G')}`;
+    const rebar = p.RebarSupported === true ? 'yes' : (p.RebarSupported === false ? 'no' : '?');
+    return `<tr class="clickable ${p.Profile === STATE.selectedProfileName ? 'selected' : ''}" onclick="openProfile('${esc(p.Profile)}')">
+      <td style="font-family:var(--mono); font-weight:600;">${esc(p.Profile)}</td>
+      <td>${esc(p.Console || '-')}</td>
+      <td>${verdictBadge(p.Verdict)}</td>
+      <td class="num">${fmt(p.WorldBootSec)}</td>
+      <td class="num" style="color:${p.Verdict === 'PASS' ? '#86efac' : ''}">${fps}</td>
+      <td class="num">${ms}</td>
+      <td class="num">${fmt(p.GpuMsAvg)}</td>
+      <td class="num">${cb}</td>
+      <td class="num">${fmt(p.TextureMsAvg)}</td>
+      <td class="num">${fmt(p.CardMbMax)}</td>
+      <td class="num">${mem}</td>
+      <td>${rebar}</td>
+      <td class="num">${p.TdrCount || 0} / ${p.BlackFrames || 0}</td>
+      <td>${esc(p.Bottleneck || '-')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function openProfile(name) {
+  STATE.selectedProfileName = name;
+  document.getElementById('inspectProfileSelect').value = name;
+  switchTab('inspector');
+}
+
+function populateDiffSelectors(profiles) {
+  const b = document.getElementById('diffBase');
+  const t = document.getElementById('diffTarget');
+  const opts = profiles.map(p => `<option value="${esc(p.Profile)}">${esc(p.Profile)} (${fmt(p.WorldFpsAvg,' fps')})</option>`).join('');
+  b.innerHTML = opts;
+  t.innerHTML = opts;
+  if (profiles.length >= 2) {
+    b.value = profiles[0].Profile;
+    const passing = profiles.filter(p => p.Verdict === 'PASS' && p.WorldFpsAvg != null)
+      .sort((x, y) => Number(y.WorldFpsAvg) - Number(x.WorldFpsAvg));
+    t.value = (passing[0] && passing[0].Profile !== profiles[0].Profile) ? passing[0].Profile : profiles[1].Profile;
+  }
+}
+
+function renderDiff() {
+  const out = document.getElementById('diffOutput');
+  const profiles = (STATE.sessionDetail && STATE.sessionDetail.profiles) || [];
+  const a = profiles.find(p => p.Profile === document.getElementById('diffBase').value);
+  const b = profiles.find(p => p.Profile === document.getElementById('diffTarget').value);
+  if (!a || !b) { out.innerHTML = '<div class="empty">Need at least 2 profiles to compare.</div>'; return; }
+
+  function deltaCell(label, va, vb, higherIsBetter, unit) {
+    if (va == null || vb == null) return `<div class="diff-box"><div class="k">${label}</div><div class="v neu">-</div></div>`;
+    const d = Number(vb) - Number(va);
+    const pct = Number(va) !== 0 ? (d / Number(va) * 100) : 0;
+    const good = higherIsBetter ? d > 0.01 : d < -0.01;
+    const bad = higherIsBetter ? d < -0.01 : d > 0.01;
+    const cls = good ? 'pos' : (bad ? 'neg' : 'neu');
+    const sign = d > 0 ? '+' : '';
+    return `<div class="diff-box">
+      <div class="k">${label}</div>
+      <div class="v ${cls}">${sign}${d.toFixed(1)}${unit} <span style="font-size:11px">(${sign}${pct.toFixed(0)}%)</span></div>
+      <div style="font-size:10.5px; color:var(--muted); font-family:var(--mono);">${va} → ${vb}</div>
+    </div>`;
+  }
+  const cbA = (a.CopyMsAvg != null && a.CopyBackMsAvg != null) ? Number(a.CopyMsAvg) + Number(a.CopyBackMsAvg) : null;
+  const cbB = (b.CopyMsAvg != null && b.CopyBackMsAvg != null) ? Number(b.CopyMsAvg) + Number(b.CopyBackMsAvg) : null;
+
+  out.innerHTML = `<div class="diff-grid">
+    ${deltaCell('World FPS', a.WorldFpsAvg, b.WorldFpsAvg, true, ' fps')}
+    ${deltaCell('Frame Time', a.WorldMsAvg, b.WorldMsAvg, false, ' ms')}
+    ${deltaCell('GPU Time', a.GpuMsAvg, b.GpuMsAvg, false, ' ms')}
+    ${deltaCell('Copy + Back', cbA, cbB, false, ' ms')}
+    ${deltaCell('Texture Time', a.TextureMsAvg, b.TextureMsAvg, false, ' ms')}
+    ${deltaCell('Peak RAM', a.PeakWorkingSetGb, b.PeakWorkingSetGb, false, ' GB')}
+  </div>`;
+}
+
+function populateProfileSelectors(detail) {
+  const profiles = detail.profiles || [];
+  const names = profiles.map(p => p.Profile);
+  if (!STATE.selectedProfileName || !names.includes(STATE.selectedProfileName)) {
+    STATE.selectedProfileName = names[0] || null;
+  }
+  const opts = names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  ['inspectProfileSelect', 'framesProfileSelect', 'cmpLeftProf', 'cmpRightProf'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = opts;
+  });
+  if (STATE.selectedProfileName) {
+    document.getElementById('inspectProfileSelect').value = STATE.selectedProfileName;
+    document.getElementById('framesProfileSelect').value = STATE.selectedProfileName;
+  }
+  if (names.length >= 2) {
+    document.getElementById('cmpLeftProf').value = names[0];
+    document.getElementById('cmpRightProf').value = names[1];
+  }
+}
+
+async function loadProfileInspector(profName) {
+  if (!STATE.selectedSessionId || !profName) return;
+  STATE.selectedProfileName = profName;
+  try {
+    const data = await api(`/api/sessions/${encodeURIComponent(STATE.selectedSessionId)}/profiles/${encodeURIComponent(profName)}`);
+    STATE.profileDetail = data;
+    document.getElementById('inspVerdict').outerHTML = verdictBadge(data.Verdict).replace('<span ', '<span id="inspVerdict" ');
+    document.getElementById('inspBottleneck').textContent = `Bottleneck: ${data.Bottleneck || 'unknown'}`;
+    document.getElementById('inspRebar').textContent = `ReBAR: ${data.RebarSupported === true ? 'YES' : (data.RebarSupported === false ? 'NO' : '?')}`;
+    document.getElementById('inspRebar').title = data.RebarMessage || '';
+
+    const env = data.Env || {};
+    const keys = Object.keys(env);
+    document.getElementById('inspEnvChips').innerHTML = keys.length
+      ? keys.map(k => `<span class="chip">${esc(k)}=${esc(env[k])}</span>`).join('')
+      : '<span style="color:var(--muted); font-size:11px;">No env.json recorded</span>';
+
+    renderFpsSeriesChart(data.Samples || []);
+    renderCostSeriesChart(data.Samples || []);
+    await loadProfileLog();
+  } catch (e) {
+    toast('Inspector error: ' + e.message);
+  }
+}
+
+function renderLineChart(containerId, samples, seriesDefs, yUnit) {
+  const el = document.getElementById(containerId);
+  if (!samples.length) {
+    el.innerHTML = '<div class="empty">No frame samples parsed from run.log yet.</div>';
+    return;
+  }
+  const W = 540, H = 210, padL = 44, padR = 14, padT = 14, padB = 26;
+  const cw = W - padL - padR, ch = H - padT - padB;
+  const allVals = [];
+  seriesDefs.forEach(sd => samples.forEach(s => { if (s[sd.key] != null) allVals.push(Number(s[sd.key])); }));
+  const maxV = Math.max(1, ...allVals) * 1.1;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto; display:block;">`;
+  // Highlight steady world region
+  const firstSteady = samples.findIndex(s => s.steady);
+  if (firstSteady >= 0) {
+    const sx = padL + (samples.length > 1 ? (firstSteady / (samples.length - 1)) * cw : 0);
+    svg += `<rect x="${sx}" y="${padT}" width="${W - padR - sx}" height="${ch}" fill="rgba(34,197,94,0.06)" />`;
+  }
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + ch - (ch * i / 4);
+    const val = (maxV * i / 4).toFixed(0);
+    svg += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#223044" stroke-dasharray="2,3" />`;
+    svg += `<text x="${padL - 6}" y="${y + 3}" fill="#7f93ad" font-size="9.5" font-family="monospace" text-anchor="end">${val}${yUnit}</text>`;
+  }
+
+  seriesDefs.forEach(sd => {
+    const pts = samples.map((s, i) => {
+      const x = padL + (samples.length > 1 ? (i / (samples.length - 1)) * cw : cw / 2);
+      const y = padT + ch - (Number(s[sd.key] || 0) / maxV) * ch;
+      return { x, y, v: s[sd.key], steady: s.steady, i };
+    });
+    const d = pts.map((p, idx) => `${idx === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    svg += `<path d="${d}" fill="none" stroke="${sd.color}" stroke-width="2" />`;
+    pts.forEach(p => {
+      svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.2" fill="${sd.color}"><title>Sample #${p.i + 1} (${p.steady ? 'steady' : 'boot/warmup'}) · ${sd.label}: ${p.v}</title></circle>`;
+    });
+  });
+
+  svg += `<text x="${padL}" y="${H - 6}" fill="#7f93ad" font-size="9.5" font-family="monospace">Sample #1</text>`;
+  svg += `<text x="${W - padR}" y="${H - 6}" fill="#7f93ad" font-size="9.5" font-family="monospace" text-anchor="end">Sample #${samples.length} (green = steady world)</text>`;
+  svg += `</svg>`;
+  el.innerHTML = svg;
+}
+
+function renderFpsSeriesChart(samples) {
+  renderLineChart('fpsChart', samples, [
+    { key: 'FrameMs', label: 'Frame ms', color: '#38bdf8' },
+    { key: 'Fps', label: 'FPS', color: '#22c55e' },
+  ], '');
+}
+
+function renderCostSeriesChart(samples) {
+  renderLineChart('costChart', samples, [
+    { key: 'GpuMs', label: 'GPU ms', color: '#38bdf8' },
+    { key: 'CopyMs', label: 'Copy ms', color: '#f59e0b' },
+    { key: 'TextureMs', label: 'Texture ms', color: '#a78bfa' },
+    { key: 'CopyBackMs', label: 'CopyBack ms', color: '#f472b6' },
+  ], '');
+}
+
+function debouncedLogSearch() {
+  clearTimeout(STATE.logSearchTimer);
+  STATE.logSearchTimer = setTimeout(loadProfileLog, 200);
+}
+
+async function loadProfileLog() {
+  if (!STATE.selectedSessionId || !STATE.selectedProfileName) return;
+  const filt = document.getElementById('logFilter').value;
+  const q = document.getElementById('logSearch').value;
+  try {
+    const data = await api(`/api/sessions/${encodeURIComponent(STATE.selectedSessionId)}/profiles/${encodeURIComponent(STATE.selectedProfileName)}/log?filter=${encodeURIComponent(filt)}&q=${encodeURIComponent(q)}&tail=400`);
+    document.getElementById('logMeta').textContent = `${data.matchedLines} / ${data.totalLines} lines`;
+    const box = document.getElementById('logBox');
+    if (!data.lines.length) {
+      box.innerHTML = '<div style="color:var(--muted)">No matching log lines.</div>';
+      return;
+    }
+    box.innerHTML = data.lines.map(item => {
+      let cls = '';
+      if (item.text.includes(' ERROR ') || item.text.includes('DXGI_ERROR') || item.text.includes('panicked')) cls = 'log-err';
+      else if (item.text.includes(' WARN ')) cls = 'log-warn';
+      else if (item.text.includes('ms/frame')) cls = 'log-host';
+      else if (item.text.includes("card's memory")) cls = 'log-card';
+      return `<div class="log-line ${cls}"><span class="log-ln">${item.line}</span><span>${esc(item.text)}</span></div>`;
+    }).join('');
+    box.scrollTop = box.scrollHeight;
+  } catch (e) {
+    toast('Log fetch failed: ' + e.message);
+  }
+}
+
+function renderFramesTab() {
+  renderFramesGallery();
+  populateCompareFrames('Left');
+  populateCompareFrames('Right');
+}
+
+function renderFramesGallery() {
+  const el = document.getElementById('framesGallery');
+  const profName = document.getElementById('framesProfileSelect').value;
+  const prof = (STATE.sessionDetail?.profiles || []).find(p => p.Profile === profName);
+  const frames = (prof && prof.Frames) || [];
+  if (!frames.length) {
+    el.innerHTML = '<div class="empty">No PNG frames captured for this profile yet (uncheck NoCapture during real runs).</div>';
+    return;
+  }
+  el.innerHTML = `<div class="frames-grid">${frames.map(f => {
+    const url = `/api/sessions/${encodeURIComponent(STATE.selectedSessionId)}/profiles/${encodeURIComponent(profName)}/frames/${encodeURIComponent(f)}`;
+    return `<div class="frame-card" onclick="openImgModal('${url}')">
+      <img src="${url}" loading="lazy" alt="${esc(f)}">
+      <div class="cap">${esc(f)}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function populateCompareFrames(side) {
+  const profName = document.getElementById(`cmp${side}Prof`).value;
+  const prof = (STATE.sessionDetail?.profiles || []).find(p => p.Profile === profName);
+  const frames = (prof && prof.Frames) || [];
+  const sel = document.getElementById(`cmp${side}Frame`);
+  sel.innerHTML = frames.length
+    ? frames.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('')
+    : '<option value="">(no frames)</option>';
+  renderVisualCompare();
+}
+
+function renderVisualCompare() {
+  const box = document.getElementById('visualCompareBox');
+  const lp = document.getElementById('cmpLeftProf').value;
+  const lf = document.getElementById('cmpLeftFrame').value;
+  const rp = document.getElementById('cmpRightProf').value;
+  const rf = document.getElementById('cmpRightFrame').value;
+  if (!lf && !rf) {
+    box.innerHTML = '<div class="empty" style="grid-column:1/-1;">No captured PNG frames available to compare in this session.</div>';
+    return;
+  }
+  const makeSide = (p, f) => {
+    if (!f) return '<div class="empty">No frame</div>';
+    const url = `/api/sessions/${encodeURIComponent(STATE.selectedSessionId)}/profiles/${encodeURIComponent(p)}/frames/${encodeURIComponent(f)}`;
+    return `<div><div style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:6px;">${esc(p)} / ${esc(f)}</div><img src="${url}" onclick="openImgModal('${url}')" style="cursor:pointer;"></div>`;
+  };
+  box.innerHTML = makeSide(lp, lf) + makeSide(rp, rf);
+}
+
+function openImgModal(url) {
+  document.getElementById('modalImg').src = url;
+  document.getElementById('imgModal').style.display = 'flex';
+}
+
+/* RUNNER & ACTIONS */
+async function saveGamePath() {
+  const gamePath = document.getElementById('gamePathInput').value.trim();
+  try {
+    const res = await api('/api/config', { method: 'POST', body: JSON.stringify({ gamePath }) });
+    toast(res.gameValidation.message);
+    refreshAll();
+  } catch (e) {
+    toast('Error saving config: ' + e.message);
+  }
+}
+
+function collectCommonRunParams() {
+  return {
+    gamePath: document.getElementById('gamePathInput').value.trim(),
+    worldMeasureSec: Number(document.getElementById('numWorldSec').value || 60),
+    cutsceneGraceSec: Number(document.getElementById('numGraceSec').value || 30),
+    bootTimeoutSec: Number(document.getElementById('numBootSec').value || 420),
+    stallTimeoutSec: Number(document.getElementById('numStallSec').value || 120),
+    walkTest: document.getElementById('chkWalkTest').checked,
+    rebuild: document.getElementById('chkRebuild').checked,
+    skipSetup: document.getElementById('chkSkipSetup').checked,
+    skipWarm: document.getElementById('chkSkipWarm').checked,
+    skipPrecompile: document.getElementById('chkSkipPrecompile').checked,
+    noCapture: document.getElementById('chkNoCapture').checked,
+  };
+}
+
+async function startSelectedRun() {
+  const profiles = Array.from(document.querySelectorAll('.prof-chk:checked')).map(c => c.value);
+  if (!profiles.length) { toast('Select at least one profile'); return; }
+  STATE.liveConsoleHidden = false;
+  try {
+    await api('/api/runs/start', { method: 'POST', body: JSON.stringify({ ...collectCommonRunParams(), profiles }) });
+    toast('Started harness run');
+    refreshAll();
+  } catch (e) {
+    toast('Start failed: ' + e.message);
+  }
+}
+
+async function startCustomRun() {
+  const name = document.getElementById('customName').value.trim();
+  const consoleProfile = document.getElementById('customConsole').value;
+  const envText = document.getElementById('customEnv').value;
+  const env = {};
+  envText.split(/\r?\n/).forEach(line => {
+    const idx = line.indexOf('=');
+    if (idx > 0) env[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+  });
+  STATE.liveConsoleHidden = false;
+  try {
+    await api('/api/runs/start', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...collectCommonRunParams(),
+        customProfile: { name: name || 'exp-custom', console: consoleProfile, env },
+      }),
+    });
+    toast('Started custom experiment: ' + name);
+    refreshAll();
+  } catch (e) {
+    toast('Custom run failed: ' + e.message);
+  }
+}
+
+async function resumeSelectedSession() {
+  if (!STATE.selectedSessionId) { toast('Select a session first'); return; }
+  STATE.liveConsoleHidden = false;
+  try {
+    await api('/api/runs/start', { method: 'POST', body: JSON.stringify({ ...collectCommonRunParams(), resume: STATE.selectedSessionId }) });
+    toast('Resuming session ' + STATE.selectedSessionId);
+  } catch (e) {
+    toast('Resume failed: ' + e.message);
+  }
+}
+
+async function reanalyzeSelectedSession() {
+  if (!STATE.selectedSessionId) { toast('Select a session first'); return; }
+  try {
+    await api('/api/runs/start', { method: 'POST', body: JSON.stringify({ analyzeOnly: STATE.selectedSessionId }) });
+    toast('Re-analyzing session ' + STATE.selectedSessionId);
+  } catch (e) {
+    toast('Re-analyze failed: ' + e.message);
+  }
+}
+
+async function stopRun() {
+  try {
+    await api('/api/runs/stop', { method: 'POST', body: '{}' });
+    toast('Stop signal sent');
+  } catch (e) {
+    toast('Stop error: ' + e.message);
+  }
+}
+
+async function generateDemo() {
+  try {
+    const res = await api('/api/demo', { method: 'POST', body: JSON.stringify({ sessionId: 'demo-selftest' }) });
+    STATE.selectedSessionId = res.session.id;
+    toast('Generated demo-selftest session');
+    await refreshAll();
+  } catch (e) {
+    toast('Demo failed: ' + e.message);
+  }
+}
+
+async function sendPress(tokens) {
+  if (!tokens || !tokens.trim()) return;
+  try {
+    await api('/api/press', {
+      method: 'POST',
+      body: JSON.stringify({
+        tokens,
+        sessionId: STATE.apiState?.runner?.activeSessionId || STATE.selectedSessionId,
+        profile: STATE.apiState?.runner?.activeProfile || STATE.selectedProfileName,
+      }),
+    });
+    toast(`Sent input: ${tokens}`);
+  } catch (e) {
+    toast('Press failed: ' + e.message);
+  }
+}
+
+function toggleLiveConsole() {
+  STATE.liveConsoleHidden = true;
+  document.getElementById('liveConsoleCard').classList.add('hidden');
+}
+
+function renderLiveConsoleLines(lines) {
+  const box = document.getElementById('liveConsole');
+  box.textContent = lines.join('\n');
+  box.scrollTop = box.scrollHeight;
+}
+
+/* AGENT LOOP CONTROL */
+async function loadLoopState() {
+  try {
+    const data = await api('/api/loop/state');
+    STATE.loop = data.loop;
+    STATE.experiments = data.experiments || [];
+    const l = data.loop || {};
+    document.getElementById('loopGoal').value = l.goal || '';
+    document.getElementById('loopMode').value = l.mode || 'manual';
+    document.getElementById('loopBaseSession').value = l.baselineSession || '';
+    document.getElementById('loopBaseProfile').value = l.baselineProfile || '';
+    document.getElementById('loopHypothesis').value = l.currentHypothesis || '';
+    const btn = document.getElementById('btnPauseLoop');
+    btn.textContent = l.paused ? 'Resume Agent' : 'Pause Agent';
+    btn.className = l.paused ? 'btn success' : 'btn danger';
+    renderExperimentsTable(STATE.experiments);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function saveLoopSettings() {
+  try {
+    await api('/api/loop/control', {
+      method: 'POST',
+      body: JSON.stringify({
+        goal: document.getElementById('loopGoal').value,
+        mode: document.getElementById('loopMode').value,
+        baselineSession: document.getElementById('loopBaseSession').value.trim(),
+        baselineProfile: document.getElementById('loopBaseProfile').value.trim(),
+        currentHypothesis: document.getElementById('loopHypothesis').value,
+      }),
+    });
+    toast('Loop settings saved');
+    refreshAll();
+  } catch (e) {
+    toast('Failed: ' + e.message);
+  }
+}
+
+async function toggleLoopPause() {
+  const paused = !(STATE.loop && STATE.loop.paused);
+  try {
+    await api('/api/loop/control', { method: 'POST', body: JSON.stringify({ paused }) });
+    toast(paused ? 'Agent loop PAUSED' : 'Agent loop RESUMED');
+    refreshAll();
+  } catch (e) {
+    toast('Failed: ' + e.message);
+  }
+}
+
+async function copyAgentSnapshot() {
+  try {
+    const snap = await api('/api/agent/snapshot');
+    await navigator.clipboard.writeText(JSON.stringify(snap, null, 2));
+    toast('Copied Agent JSON Snapshot to clipboard');
+  } catch (e) {
+    toast('Copy failed: ' + e.message);
+  }
+}
+
+async function logManualIteration() {
+  const profiles = (STATE.sessionDetail && STATE.sessionDetail.profiles) || [];
+  const passing = profiles.filter(p => p.Verdict === 'PASS' && p.WorldFpsAvg != null)
+    .sort((a, b) => Number(b.WorldFpsAvg) - Number(a.WorldFpsAvg));
+  const best = passing[0] || profiles[0];
+  if (!best) { toast('Select a session with at least one profile first'); return; }
+  const hypothesis = document.getElementById('loopHypothesis').value.trim() || `Logged from ${STATE.selectedSessionId}`;
+  try {
+    await api('/api/loop/iterations', {
+      method: 'POST',
+      body: JSON.stringify({
+        hypothesis,
+        sessionId: STATE.selectedSessionId,
+        profile: best.Profile,
+        verdict: best.Verdict,
+        decision: best.Verdict === 'PASS' ? 'KEEP' : 'FAILED',
+        metrics: { fps: best.WorldFpsAvg, frameMs: best.WorldMsAvg, gpuMs: best.GpuMsAvg },
+      }),
+    });
+    toast('Logged iteration #' + (STATE.experiments.length + 1));
+    loadLoopState();
+  } catch (e) {
+    toast('Log iteration failed: ' + e.message);
+  }
+}
+
+async function setExpDecision(id, decision) {
+  try {
+    await api('/api/loop/iterations/decision', { method: 'POST', body: JSON.stringify({ id, decision }) });
+    toast(`Iteration #${id} marked ${decision}`);
+    loadLoopState();
+  } catch (e) {
+    toast('Failed: ' + e.message);
+  }
+}
+
+function renderExperimentsTable(rows) {
+  const tb = document.getElementById('expBody');
+  if (!rows.length) {
+    tb.innerHTML = '<tr><td colspan="10"><div class="empty">No loop iterations logged yet. Ready for autonomous agent control via <code>POST /api/loop/iterations</code>.</div></td></tr>';
+    return;
+  }
+  tb.innerHTML = [...rows].reverse().map(r => {
+    const decCls = r.decision === 'KEEP' ? 'b-pass' : (r.decision === 'REVERT' || r.decision === 'FAILED' ? 'b-fail' : 'b-warn');
+    return `<tr>
+      <td class="num">#${r.id}</td>
+      <td style="font-family:var(--mono); font-size:11px; color:var(--muted);">${esc((r.timestamp || '').replace('T',' ').replace('Z',''))}</td>
+      <td style="font-family:var(--mono);">${esc(r.gitSha || '-')}</td>
+      <td style="font-family:var(--mono); font-size:11px;">${esc(r.sessionId || '')} / ${esc(r.profile || '')}</td>
+      <td style="max-width:260px; white-space:normal;">${esc(r.hypothesis || '')}</td>
+      <td>${verdictBadge(r.verdict)}</td>
+      <td class="num">${fmt(r.metrics && r.metrics.fps)}</td>
+      <td class="num">${fmt(r.metrics && r.metrics.gpuMs)}</td>
+      <td><span class="badge ${decCls}">${esc(r.decision || 'PENDING')}</span></td>
+      <td>
+        <button class="btn sm success" onclick="setExpDecision(${r.id}, 'KEEP')">Keep</button>
+        <button class="btn sm danger" onclick="setExpDecision(${r.id}, 'REVERT')">Revert</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function connectSSE() {
+  if (STATE.sse) STATE.sse.close();
+  const es = new EventSource('/api/events');
+  STATE.sse = es;
+  es.addEventListener('line', ev => {
+    const d = JSON.parse(ev.data);
+    if (!STATE.liveConsoleHidden) {
+      document.getElementById('liveConsoleCard').classList.remove('hidden');
+      document.getElementById('livePhaseBadge').textContent = d.phase || 'running';
+      const box = document.getElementById('liveConsole');
+      box.textContent += (box.textContent ? '\n' : '') + d.line;
+      box.scrollTop = box.scrollHeight;
+    }
+  });
+  es.addEventListener('status', () => refreshAll());
+  es.addEventListener('sessions', () => refreshAll());
+  es.addEventListener('loop', () => loadLoopState());
+  es.addEventListener('experiment', () => loadLoopState());
+}
+
+connectSSE();
+refreshAll();
+setInterval(() => {
+  if (STATE.apiState?.runner?.running) refreshAll();
+}, 5000);
+</script>
+</body>
+</html>
