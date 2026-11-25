@@ -114,24 +114,23 @@ void main(uint3 id : SV_DispatchThreadID, uint tid : SV_GroupIndex) {
         }
     }
     // Diagnostics for mesh dispatches: reduce across the 64-lane group before
-    // touching global memory (64x fewer atomics on budget[4..8]).
-    if (kind > 2) {
-        s_mesh_max[tid] = mesh_gx;
-        s_mesh_sum[tid] = mesh_add;
+    // touching global memory (64x fewer atomics on budget[4..8]). Kept in
+    // unconditional control flow so FXC cs_5_1 always accepts the barriers.
+    s_mesh_max[tid] = mesh_gx;
+    s_mesh_sum[tid] = mesh_add;
+    GroupMemoryBarrierWithGroupSync();
+    [unroll]
+    for (uint s = 32u; s > 0u; s >>= 1u) {
+        if (tid < s) {
+            s_mesh_max[tid] = max(s_mesh_max[tid], s_mesh_max[tid + s]);
+            s_mesh_sum[tid] += s_mesh_sum[tid + s];
+        }
         GroupMemoryBarrierWithGroupSync();
-        [unroll]
-        for (uint s = 32u; s > 0u; s >>= 1u) {
-            if (tid < s) {
-                s_mesh_max[tid] = max(s_mesh_max[tid], s_mesh_max[tid + s]);
-                s_mesh_sum[tid] += s_mesh_sum[tid + s];
-            }
-            GroupMemoryBarrierWithGroupSync();
-        }
-        if (tid == 0u) {
-            uint was;
-            if (s_mesh_max[0] > 0u) budget.InterlockedMax(4, s_mesh_max[0], was);
-            if (s_mesh_sum[0] > 0u) budget.InterlockedAdd(8, s_mesh_sum[0], was);
-        }
+    }
+    if (tid == 0u && kind > 2) {
+        uint was;
+        if (s_mesh_max[0] > 0u) budget.InterlockedMax(4, s_mesh_max[0], was);
+        if (s_mesh_sum[0] > 0u) budget.InterlockedAdd(8, s_mesh_sum[0], was);
     }
     // Saturating inclusive prefix-sum across the 64-lane group in groupshared
     // memory: only lane 63 reserves the group total from budget[0], avoiding
@@ -241,7 +240,7 @@ fn make_for(device: &ID3D12Device) -> windows::core::Result<Clamp> {
             None,
             s!("main"),
             s!("cs_5_1"),
-            0,
+            1 << 15, // D3DCOMPILE_OPTIMIZATION_LEVEL3
             0,
             &mut code,
             Some(&mut errors),

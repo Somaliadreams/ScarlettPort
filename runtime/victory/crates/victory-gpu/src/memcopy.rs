@@ -195,8 +195,11 @@ pub(crate) fn lane_hash(bytes: &[u8]) -> [u8; 32] {
     let mut lane = K;
     let mut blocks = bytes.chunks_exact(8 * LANES);
     for block in &mut blocks {
-        for (i, l) in lane.iter_mut().enumerate() {
-            let w = u64::from_le_bytes(block[8 * i..8 * i + 8].try_into().unwrap_or([0; 8]));
+        for (i, (l, chunk)) in lane.iter_mut().zip(block.chunks_exact(8)).enumerate() {
+            let w = u64::from_le_bytes([
+                chunk[0], chunk[1], chunk[2], chunk[3],
+                chunk[4], chunk[5], chunk[6], chunk[7],
+            ]);
             *l = (l.rotate_left(23) ^ w).wrapping_mul(K[i] | 1);
         }
     }

@@ -4603,7 +4603,7 @@ impl Host {
                 None,
                 windows::core::s!("main"),
                 windows::core::s!("cs_5_1"),
-                0,
+                1 << 15, // D3DCOMPILE_OPTIMIZATION_LEVEL3
                 0,
                 &mut code,
                 None,
